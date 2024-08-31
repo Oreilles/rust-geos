@@ -2000,11 +2000,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     fn get_srid(&self) -> GResult<i32> {
         unsafe {
             let ret = GEOSGetSRID_r(self.get_raw_context(), self.as_raw());
-            if ret < 1 {
-                Err(Error::GenericError("GEOSGetSRID_r failed".to_owned()))
-            } else {
-                Ok(ret as _)
-            }
+            Ok(ret as _)
         }
     }
 
