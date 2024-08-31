@@ -1098,7 +1098,7 @@ pub trait Geom:
     /// point_geom.set_srid(4326);
     /// assert_eq!(point_geom.get_srid(), Ok(4326));
     /// ```
-    fn get_srid(&self) -> GResult<usize>;
+    fn get_srid(&self) -> GResult<i32>;
     /// Returns the precision of `self`.
     ///
     /// Available using the `v3_6_0` feature.
@@ -1997,7 +1997,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         }
     }
 
-    fn get_srid(&self) -> GResult<usize> {
+    fn get_srid(&self) -> GResult<i32> {
         unsafe {
             let ret = GEOSGetSRID_r(self.get_raw_context(), self.as_raw());
             if ret < 1 {
@@ -2620,7 +2620,7 @@ impl Geometry {
     /// point_geom.set_srid(4326);
     /// assert_eq!(point_geom.get_srid(), Ok(4326));
     /// ```
-    pub fn set_srid(&mut self, srid: usize) {
+    pub fn set_srid(&mut self, srid: i32) {
         unsafe { GEOSSetSRID_r(self.get_raw_context(), self.as_raw_mut(), srid as _) }
     }
 
