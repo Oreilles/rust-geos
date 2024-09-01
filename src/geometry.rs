@@ -69,6 +69,7 @@ pub trait Geom:
     /// assert_eq!(geom.get_type(), Ok("Polygon".to_owned()));
     /// ```
     fn get_type(&self) -> GResult<String>;
+    fn get_type_id(&self) -> GResult<u32>;
     fn geometry_type(&self) -> GeometryTypes;
     /// Checks if the geometry is valid.
     ///
@@ -1417,6 +1418,15 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         unsafe {
             let ptr = GEOSGeomType_r(self.get_raw_context(), self.as_raw());
             managed_string(ptr, self.get_context_handle(), "GGeom::get_type")
+        }
+    }
+
+    fn get_type_id(&self) -> GResult<u32> {
+        let ret = unsafe { GEOSGeomTypeId_r(self.get_raw_context(), self.as_raw()) };
+        if ret == -1 {
+            Err(Error::GenericError("GEOSGeomTypeId_r failed".to_owned()))
+        } else {
+            Ok(ret as _)
         }
     }
 
