@@ -1989,7 +1989,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     fn get_num_geometries(&self) -> GResult<usize> {
         unsafe {
             let ret = GEOSGetNumGeometries_r(self.get_raw_context(), self.as_raw());
-            if ret < 1 {
+            if ret < 0 {
                 Err(Error::GenericError("GEOSGetNumGeometries_r failed".to_owned()))
             } else {
                 Ok(ret as _)
