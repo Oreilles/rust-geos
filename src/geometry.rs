@@ -8,6 +8,8 @@ use crate::{
     AsRaw, AsRawMut, BufferParams, ContextHandle, ContextHandling, ContextInteractions, CoordSeq,
     PreparedGeometry, WKTWriter,
 };
+#[cfg(any(feature = "v3_10_0", feature = "dox"))]
+use crate::GeoJSONWriter;
 use c_vec::CVec;
 use geos_sys::*;
 use std::borrow::Borrow;
@@ -1325,6 +1327,23 @@ pub trait Geom:
     /// let wkb_buf = point_geom.to_wkb().expect("conversion to WKB failed");
     /// ```
     fn to_wkb(&self) -> GResult<CVec<u8>>;
+    /// Converts a [`Geometry`] to the WKB format. For more control over the generated output,
+    /// use the [`WKBWriter`](crate::WKBWriter) type.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use geos::{Geom, Geometry};
+    ///
+    /// let point_geom = Geometry::new_from_wkt("POINT (2.5 2.5)")
+    ///                           .expect("Invalid geometry");
+    /// assert_eq!(
+    ///     point_geom.to_geojson().unwrap(),
+    ///     r#"{"type": "Point", "coordinates": [2.5, 2.5]}",
+    /// );
+    /// ```
+    #[cfg(any(feature = "v3_10_0", feature = "dox"))]
+    fn to_geojson(&self, indent: i32) -> GResult<String>;
     /// Creates a new [`PreparedGeometry`] from the current `Geometry`.
     ///
     /// # Example
@@ -2273,6 +2292,14 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
             } else {
                 Ok(CVec::new(ptr, size as _))
             }
+        }
+    }
+
+    #[cfg(any(feature = "v3_10_0", feature = "dox"))]
+    fn to_geojson(&self, indent: i32) -> GResult<String> {
+        match GeoJSONWriter::new_with_context(self.clone_context()) {
+            Ok(mut w) => w.write(self, indent),
+            Err(e) => Err(e),
         }
     }
 
