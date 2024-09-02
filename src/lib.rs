@@ -29,6 +29,8 @@ pub use prepared_geometry::PreparedGeometry;
 pub use spatial_index::{STRtree, SpatialIndex};
 pub use wkb_writer::WKBWriter;
 pub use wkt_writer::WKTWriter;
+#[cfg(any(feature = "v3_10_0", feature = "dox"))]
+pub use geojson_writer::GeoJSONWriter;
 
 mod buffer_params;
 mod context_handle;
@@ -54,6 +56,8 @@ mod enums;
 mod traits;
 mod wkb_writer;
 mod wkt_writer;
+#[cfg(any(feature = "v3_10_0", feature = "dox"))]
+mod geojson_writer;
 
 pub(crate) use traits::{AsRaw, AsRawMut};
 pub use traits::{ContextHandling, ContextInteractions};
