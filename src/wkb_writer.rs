@@ -218,7 +218,7 @@ impl WKBWriter {
     pub fn get_out_dimension(&self) -> GResult<OutputDimension> {
         unsafe {
             let out = GEOSWKBWriter_getOutputDimension_r(self.get_raw_context(), self.as_raw());
-            OutputDimension::try_from(out).map_err(|e| Error::GenericError(e.to_owned()))
+            OutputDimension::try_from(out)
         }
     }
 
@@ -237,7 +237,7 @@ impl WKBWriter {
     pub fn get_wkb_byte_order(&self) -> GResult<ByteOrder> {
         unsafe {
             let out = GEOSWKBWriter_getByteOrder_r(self.get_raw_context(), self.as_raw());
-            ByteOrder::try_from(out).map_err(|e| Error::GenericError(e.to_owned()))
+            ByteOrder::try_from(out)
         }
     }
 

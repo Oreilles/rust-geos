@@ -19,7 +19,7 @@ impl$(<$lt>)? TryFrom<$ty_name$(<$lt>)?> for Geometry {
     type Error = Error;
 
     fn try_from(other: $ty_name$(<$lt>)?) -> Result<Geometry, Self::Error> {
-        let _type = other.geometry_type();
+        let _type = other.geometry_type()?;
         match _type {
             GeometryTypes::Point => {
                 let coord_seq = other.get_coord_seq()?;

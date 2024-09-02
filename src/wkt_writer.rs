@@ -181,7 +181,7 @@ impl WKTWriter {
                 self.get_raw_context(),
                 self.as_raw_mut_override(),
             );
-            OutputDimension::try_from(out).map_err(|e| Error::GenericError(e.to_owned()))
+            OutputDimension::try_from(out)
         }
     }
 

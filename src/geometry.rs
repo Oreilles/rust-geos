@@ -69,8 +69,8 @@ pub trait Geom:
     /// assert_eq!(geom.get_type(), Ok("Polygon".to_owned()));
     /// ```
     fn get_type(&self) -> GResult<String>;
-    fn get_type_id(&self) -> GResult<u32>;
-    fn geometry_type(&self) -> GeometryTypes;
+    fn get_type_id(&self) -> GResult<i32>;
+    fn geometry_type(&self) -> GResult<GeometryTypes>;
     /// Checks if the geometry is valid.
     ///
     /// # Example
@@ -1421,7 +1421,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         }
     }
 
-    fn get_type_id(&self) -> GResult<u32> {
+    fn get_type_id(&self) -> GResult<i32> {
         let ret = unsafe { GEOSGeomTypeId_r(self.get_raw_context(), self.as_raw()) };
         if ret == -1 {
             Err(Error::GenericError("GEOSGeomTypeId_r failed".to_owned()))
@@ -1430,10 +1430,8 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         }
     }
 
-    fn geometry_type(&self) -> GeometryTypes {
-        let type_geom = unsafe { GEOSGeomTypeId_r(self.get_raw_context(), self.as_raw()) as i32 };
-
-        GeometryTypes::try_from(type_geom).expect("Failed to convert to GeometryTypes")
+    fn geometry_type(&self) -> GResult<GeometryTypes> {
+        GeometryTypes::try_from(self.get_type_id()?)
     }
 
     fn is_valid(&self) -> bool {
@@ -1448,7 +1446,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_coord_seq(&self) -> GResult<CoordSeq> {
-        let type_geom = self.geometry_type();
+        let type_geom = self.geometry_type()?;
         match type_geom {
             GeometryTypes::Point | GeometryTypes::LineString | GeometryTypes::LinearRing => unsafe {
                 let coord = GEOSGeom_getCoordSeq_r(self.get_raw_context(), self.as_raw());
@@ -1720,12 +1718,13 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn is_closed(&self) -> GResult<bool> {
-        if self.geometry_type() != GeometryTypes::LineString &&
-           self.geometry_type() != GeometryTypes::MultiLineString {
-            return Err(Error::GenericError("Geometry must be a LineString or a MultiLineString".to_owned()));
+        match self.geometry_type()? {
+            GeometryTypes::LineString | GeometryTypes::MultiLineString => {
+                let ret_val = unsafe { GEOSisClosed_r(self.get_raw_context(), self.as_raw()) };
+                check_geos_predicate(ret_val as _, PredicateType::IsSimple)
+            }
+            _ => Err(Error::GenericError("Geometry must be a LineString or a MultiLineString".to_owned()))
         }
-        let ret_val = unsafe { GEOSisClosed_r(self.get_raw_context(), self.as_raw()) };
-        check_geos_predicate(ret_val as _, PredicateType::IsSimple)
     }
 
     fn length(&self) -> GResult<f64> {
@@ -1858,7 +1857,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_x(&self) -> GResult<f64> {
-        if self.geometry_type() != GeometryTypes::Point {
+        if self.geometry_type()? != GeometryTypes::Point {
             return Err(Error::GenericError("Geometry must be a point".to_owned()));
         }
         let mut x = 0.;
@@ -1872,7 +1871,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_y(&self) -> GResult<f64> {
-        if self.geometry_type() != GeometryTypes::Point {
+        if self.geometry_type()? != GeometryTypes::Point {
             return Err(Error::GenericError("Geometry must be a point".to_owned()));
         }
         let mut y = 0.;
@@ -1887,7 +1886,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
 
     #[cfg(any(feature = "v3_7_0", feature = "dox"))]
     fn get_z(&self) -> GResult<f64> {
-        if self.geometry_type() != GeometryTypes::Point {
+        if self.geometry_type()? != GeometryTypes::Point {
             return Err(Error::GenericError("Geometry must be a point".to_owned()));
         }
         let mut z = 0.;
@@ -1901,7 +1900,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_point_n(&self, n: usize) -> GResult<Geometry> {
-        if self.geometry_type() != GeometryTypes::LineString {
+        if self.geometry_type()? != GeometryTypes::LineString {
             return Err(Error::GenericError("Geometry must be a LineString".to_owned()));
         }
         unsafe {
@@ -1911,7 +1910,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_start_point(&self) -> GResult<Geometry> {
-        if self.geometry_type() != GeometryTypes::LineString {
+        if self.geometry_type()? != GeometryTypes::LineString {
             return Err(Error::GenericError("Geometry must be a LineString".to_owned()));
         }
         unsafe {
@@ -1921,7 +1920,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_end_point(&self) -> GResult<Geometry> {
-        if self.geometry_type() != GeometryTypes::LineString {
+        if self.geometry_type()? != GeometryTypes::LineString {
             return Err(Error::GenericError("Geometry must be a LineString".to_owned()));
         }
         unsafe {
@@ -1931,7 +1930,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_num_points(&self) -> GResult<usize> {
-        if self.geometry_type() != GeometryTypes::LineString {
+        if self.geometry_type()? != GeometryTypes::LineString {
             return Err(Error::GenericError("Geometry must be a LineString".to_owned()));
         }
         unsafe {
@@ -2138,7 +2137,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn interpolate(&self, d: f64) -> GResult<Geometry> {
-        if self.geometry_type() != GeometryTypes::LineString {
+        if self.geometry_type()? != GeometryTypes::LineString {
             return Err(Error::GenericError("Geometry must be a LineString".to_owned()));
         }
         unsafe {
@@ -2148,7 +2147,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn interpolate_normalized(&self, d: f64) -> GResult<Geometry> {
-        if self.geometry_type() != GeometryTypes::LineString {
+        if self.geometry_type()? != GeometryTypes::LineString {
             return Err(Error::GenericError("Geometry must be a LineString".to_owned()));
         }
         unsafe {
@@ -2158,7 +2157,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn project<G: Geom>(&self, p: &G) -> GResult<f64> {
-        if p.geometry_type() != GeometryTypes::Point {
+        if p.geometry_type()? != GeometryTypes::Point {
             return Err(Error::GenericError("Second geometry must be a Point".to_owned()));
         }
         unsafe {
@@ -2172,7 +2171,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn project_normalized<G: Geom>(&self, p: &G) -> GResult<f64> {
-        if p.geometry_type() != GeometryTypes::Point {
+        if p.geometry_type()? != GeometryTypes::Point {
             return Err(Error::GenericError("Second geometry must be a Point".to_owned()));
         }
         unsafe {
@@ -2199,7 +2198,7 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         join_style: JoinStyle,
         mitre_limit: f64,
     ) -> GResult<Geometry> {
-        if self.geometry_type() != GeometryTypes::LineString {
+        if self.geometry_type()? != GeometryTypes::LineString {
             return Err(Error::GenericError("Geometry must be a LineString".to_owned()));
         }
         unsafe {
@@ -2785,7 +2784,7 @@ impl Geometry {
         mut exterior: Geometry,
         mut interiors: Vec<Geometry>,
     ) -> GResult<Geometry> {
-        if exterior.geometry_type() != GeometryTypes::LinearRing {
+        if exterior.geometry_type()? != GeometryTypes::LinearRing {
             return Err(Error::GenericError(
                 "exterior must be a LinearRing".to_owned(),
             ));
@@ -2856,7 +2855,7 @@ impl Geometry {
     ///                           ((3.0 3.0, 10.0 3.0, 10.0 6.0, 3.0 6.0, 3.0 3.0)))");
     /// ```
     pub fn create_multipolygon(polygons: Vec<Geometry>) -> GResult<Geometry> {
-        if !check_same_geometry_type(&polygons, GeometryTypes::Polygon) {
+        if !check_same_geometry_type(&polygons, GeometryTypes::Polygon)? {
             return Err(Error::ImpossibleOperation(
                 "all the provided geometry have to be of type Polygon".to_owned(),
             ));
@@ -2881,7 +2880,7 @@ impl Geometry {
     ///            "MULTILINESTRING ((1.0 2.0, 3.0 4.0), (5.0 6.0, 7.0 8.0))");
     /// ```
     pub fn create_multiline_string(linestrings: Vec<Geometry>) -> GResult<Geometry> {
-        if !check_same_geometry_type(&linestrings, GeometryTypes::LineString) {
+        if !check_same_geometry_type(&linestrings, GeometryTypes::LineString)? {
             return Err(Error::ImpossibleOperation(
                 "all the provided geometry have to be of type LineString".to_owned(),
             ));
@@ -2905,7 +2904,7 @@ impl Geometry {
     /// assert_eq!(geom.to_wkt_precision(1).unwrap(), "MULTIPOINT (1.0 2.0, 3.0 4.0)");
     /// ```
     pub fn create_multipoint(points: Vec<Geometry>) -> GResult<Geometry> {
-        if !check_same_geometry_type(&points, GeometryTypes::Point) {
+        if !check_same_geometry_type(&points, GeometryTypes::Point)? {
             return Err(Error::ImpossibleOperation(
                 "all the provided geometry have to be of type Point".to_owned(),
             ));

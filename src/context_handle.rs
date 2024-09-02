@@ -240,7 +240,7 @@ impl ContextHandle {
     pub fn get_wkb_output_dimensions(&self) -> GResult<OutputDimension> {
         unsafe {
             let out = GEOS_getWKBOutputDims_r(self.as_raw());
-            OutputDimension::try_from(out).map_err(|e| Error::GenericError(e.to_owned()))
+            OutputDimension::try_from(out)
         }
     }
 
@@ -262,7 +262,7 @@ impl ContextHandle {
     ) -> GResult<OutputDimension> {
         unsafe {
             let out = GEOS_setWKBOutputDims_r(self.as_raw(), dimensions.into());
-            OutputDimension::try_from(out).map_err(|e| Error::GenericError(e.to_owned()))
+            OutputDimension::try_from(out)
         }
     }
 
@@ -276,11 +276,10 @@ impl ContextHandle {
     /// let mut context_handle = ContextHandle::init().expect("invalid init");
     ///
     /// context_handle.set_wkb_byte_order(ByteOrder::LittleEndian);
-    /// assert!(context_handle.get_wkb_byte_order() == ByteOrder::LittleEndian);
+    /// assert_eq!(context_handle.get_wkb_byte_order() == Ok(ByteOrder::LittleEndian));
     /// ```
-    pub fn get_wkb_byte_order(&self) -> ByteOrder {
+    pub fn get_wkb_byte_order(&self) -> GResult<ByteOrder> {
         ByteOrder::try_from(unsafe { GEOS_getWKBByteOrder_r(self.as_raw()) })
-            .expect("failed to convert to ByteOrder")
     }
 
     /// Sets WKB byte order.
@@ -293,11 +292,10 @@ impl ContextHandle {
     /// let mut context_handle = ContextHandle::init().expect("invalid init");
     ///
     /// context_handle.set_wkb_byte_order(ByteOrder::LittleEndian);
-    /// assert!(context_handle.get_wkb_byte_order() == ByteOrder::LittleEndian);
+    /// assert_eq!(context_handle.get_wkb_byte_order(), Ok(ByteOrder::LittleEndian));
     /// ```
-    pub fn set_wkb_byte_order(&mut self, byte_order: ByteOrder) -> ByteOrder {
+    pub fn set_wkb_byte_order(&mut self, byte_order: ByteOrder) -> GResult<ByteOrder> {
         ByteOrder::try_from(unsafe { GEOS_setWKBByteOrder_r(self.as_raw(), byte_order.into()) })
-            .expect("failed to convert to ByteOrder")
     }
 }
 

@@ -50,11 +50,11 @@ fn test_geom_creation_from_geoms() {
         g3.area().expect("area 2.2 failed"),
     );
     let g4 = g3.get_centroid().expect("get_centroid failed");
-    assert_eq!(GeometryTypes::Point, g4.geometry_type());
+    assert_eq!(GeometryTypes::Point, g4.geometry_type().expect("geometry_type failed"));
     let g5 = g4.buffer(200.0, 12).expect("buffer 2 failed");
 
     assert!(g5.area().expect("area 3.1 failed") > g4.area().expect("area 3.2 failed"));
-    assert_eq!(GeometryTypes::Polygon, g5.geometry_type());
+    assert_eq!(GeometryTypes::Polygon, g5.geometry_type().expect("geometry_type failed"));
 }
 
 #[test]
