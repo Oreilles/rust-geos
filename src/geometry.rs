@@ -1710,9 +1710,8 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn is_closed(&self) -> GResult<bool> {
-        if self.geometry_type() != GeometryTypes::LineString &&
-           self.geometry_type() != GeometryTypes::MultiLineString {
-            return Err(Error::GenericError("Geometry must be a LineString or a MultiLineString".to_owned()));
+        if !matches!(self.geometry_type(), GeometryTypes::LinearRing | GeometryTypes::LineString | GeometryTypes::MultiLineString)
+            return Err(Error::GenericError("Geometry must be a LineString, LinearRing or MultiLineString".to_owned()));
         }
         let ret_val = unsafe { GEOSisClosed_r(self.get_raw_context(), self.as_raw()) };
         check_geos_predicate(ret_val as _, PredicateType::IsSimple)
