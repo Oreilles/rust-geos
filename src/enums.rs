@@ -7,6 +7,7 @@ pub enum CoordDimensions {
     OneD,
     TwoD,
     ThreeD,
+    FourD,
 }
 
 impl TryFrom<u32> for CoordDimensions {
@@ -17,7 +18,8 @@ impl TryFrom<u32> for CoordDimensions {
             1 => Ok(CoordDimensions::OneD),
             2 => Ok(CoordDimensions::TwoD),
             3 => Ok(CoordDimensions::ThreeD),
-            _ => Err("dimensions must be >= 1 and <= 3"),
+            4 => Ok(CoordDimensions::ThreeD),
+            _ => Err("dimensions must be >= 1 and <= 4"),
         }
     }
 }
@@ -29,6 +31,7 @@ impl Into<u32> for CoordDimensions {
             CoordDimensions::OneD => 1,
             CoordDimensions::TwoD => 2,
             CoordDimensions::ThreeD => 3,
+            CoordDimensions::FourD => 4,
         }
     }
 }
@@ -130,6 +133,11 @@ pub enum GeometryTypes {
     MultiLineString,
     MultiPolygon,
     GeometryCollection,
+    CircularsString,
+    CompoundCurve,
+    CurvePolygon,
+    MultiCurve,
+    MultiSurface,
     #[doc(hidden)]
     __Unknown(u32),
 }
@@ -147,6 +155,11 @@ impl TryFrom<c_int> for GeometryTypes {
             5 => Ok(GeometryTypes::MultiLineString),
             6 => Ok(GeometryTypes::MultiPolygon),
             7 => Ok(GeometryTypes::GeometryCollection),
+            8 => Ok(GeometryTypes::CircularsString),
+            9 => Ok(GeometryTypes::CompoundCurve),
+            10 => Ok(GeometryTypes::CurvePolygon),
+            11 => Ok(GeometryTypes::MultiCurve),
+            12 => Ok(GeometryTypes::MultiSurface),
             x => Ok(GeometryTypes::__Unknown(x as _)),
         }
     }
@@ -164,6 +177,11 @@ impl Into<c_int> for GeometryTypes {
             GeometryTypes::MultiLineString => 5,
             GeometryTypes::MultiPolygon => 6,
             GeometryTypes::GeometryCollection => 7,
+            GeometryTypes::CircularsString => 8,
+            GeometryTypes::CompoundCurve => 9,
+            GeometryTypes::CurvePolygon => 10,
+            GeometryTypes::MultiCurve => 11,
+            GeometryTypes::MultiSurface => 12,
             GeometryTypes::__Unknown(x) => x as _,
         }
     }

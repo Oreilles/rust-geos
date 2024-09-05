@@ -346,6 +346,20 @@ impl PreparedGeometry {
             unsafe { GEOSPreparedWithin_r(self.get_raw_context(), self.as_raw(), other.as_raw()) };
         check_geos_predicate(ret_val as _, PredicateType::PreparedWithin)
     }
+
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    pub fn contains_xy(&self, x: f64, y: f64) -> GResult<bool> {
+        let ret_val =
+            unsafe { GEOSPreparedContainsXY_r(self.get_raw_context(), self.as_raw(), x, y) };
+        check_geos_predicate(ret_val as _, PredicateType::PreparedContainsXY)
+    }
+
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    pub fn intersects_xy(&self, x: f64, y: f64) -> GResult<bool> {
+        let ret_val =
+            unsafe { GEOSPreparedIntersectsXY_r(self.get_raw_context(), self.as_raw(), x, y) };
+        check_geos_predicate(ret_val as _, PredicateType::PreparedIntersectsXY)
+    }
 }
 
 unsafe impl Send for PreparedGeometry {}

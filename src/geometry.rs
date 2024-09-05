@@ -12,6 +12,8 @@ use c_vec::CVec;
 use geos_sys::*;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
+#[cfg(any(feature = "v3_11_0", feature = "dox"))]
+use std::ffi::c_void;
 use std::ffi::CString;
 use std::sync::Arc;
 use std::{self, str};
@@ -340,6 +342,8 @@ pub trait Geom:
     /// assert_eq!(geom1.equals_exact(&geom3, 0.1), Ok(true));
     /// ```
     fn equals_exact<G: Geom>(&self, other: &G, precision: f64) -> GResult<bool>;
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn equals_identical<G: Geom>(&self, other: &G) -> GResult<bool>;
     /// Returns `true` if no point of `other` is outside of `self`.
     ///
     /// # Example
@@ -383,6 +387,8 @@ pub trait Geom:
     /// assert_eq!(geom1.contains(&geom2), Ok(true));
     /// ```
     fn contains<G: Geom>(&self, other: &G) -> GResult<bool>;
+    fn relate<G: Geom>(&self, other: &G) -> GResult<String>;
+    fn relate_pattern<G: Geom>(&self, other: &G, pattern: &str) -> GResult<bool>;
     /// Returns a geometry which represents all points whose distance from `self` is less than or
     /// equal to distance.
     ///
@@ -521,6 +527,8 @@ pub trait Geom:
     ///            "LINESTRING (50.0 150.0, 50.0 200.0)");
     /// ```
     fn difference<G: Geom>(&self, other: &G) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn difference_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry>;
     /// Returns the minimum bouding box of the given geometry.
     ///
     /// # Example
@@ -558,6 +566,8 @@ pub trait Geom:
     /// );
     /// ```
     fn sym_difference<G: Geom>(&self, other: &G) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn sym_difference_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry>;
     /// Aggregates the given geometry with another one.
     ///
     /// # Example
@@ -573,6 +583,8 @@ pub trait Geom:
     /// assert_eq!(union_geom.to_wkt_precision(1).unwrap(), "MULTIPOINT (1.0 2.0, 3.0 4.0)");
     /// ```
     fn union<G: Geom>(&self, other: &G) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn union_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry>;
     /// Returns the geometric center or (equivalently) the center of mass of the given geometry as
     /// a point.
     ///
@@ -621,6 +633,12 @@ pub trait Geom:
     /// );
     /// ```
     fn unary_union(&self) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn unary_union_prec(&self, grid_size: f64) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_8_0", feature = "dox"))]
+    fn coverage_union(&self) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn disjoint_subset_union(&self) -> GResult<Geometry>;
     /// Create a voronoi diagram.
     ///
     /// # Example
@@ -672,6 +690,8 @@ pub trait Geom:
     /// assert_eq!(intersection_geom.to_wkt_precision(1).unwrap(), "POINT (0.0 0.0)");
     /// ```
     fn intersection<G: Geom>(&self, other: &G) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn intersection_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry>;
     /// Documentation from [postgis](https://postgis.net/docs/ST_ConvexHull.html):
     ///
     /// > The convex hull of a geometry represents the minimum convex geometry that encloses all
@@ -732,6 +752,21 @@ pub trait Geom:
     /// assert_eq!(geom.has_z(), Ok(false));
     /// ```
     fn has_z(&self) -> GResult<bool>;
+    /// Returns `true` if `self` has a M coordinate.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use geos::{Geom, Geometry};
+    ///
+    /// let geom = Geometry::new_from_wkt("POINT(1 2 3 4)").expect("Invalid geometry");
+    /// assert_eq!(geom.has_m(), Ok(true));
+    ///
+    /// let geom = Geometry::new_from_wkt("POINT(1 2 3)").expect("Invalid geometry");
+    /// assert_eq!(geom.has_m(), Ok(false));
+    /// ```
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn has_m(&self) -> GResult<bool>;
     /// Returns `true` if start and end point are coincident.
     ///
     /// Only works on `LineString` and `MultiLineString`.
@@ -945,6 +980,20 @@ pub trait Geom:
     /// ```
     #[cfg(any(feature = "v3_7_0", feature = "dox"))]
     fn get_z(&self) -> GResult<f64>;
+    /// Returns the M position. The given `Geometry` must be a `Point`, otherwise it'll fail.
+    ///
+    /// Available using the `v3_12_0` feature.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use geos::{Geom, Geometry};
+    ///
+    /// let point_geom = Geometry::new_from_wkt("POINT (2.5 2.5 4.0 5.0)").expect("Invalid geometry");
+    /// assert!(point_geom.get_m() == Ok(5.0));
+    /// ```
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn get_m(&self) -> GResult<f64>;
     /// Returns the nth point of the given geometry.
     ///
     /// The given `Geometry` must be a `LineString`, otherwise it'll fail.
@@ -1402,6 +1451,19 @@ pub trait Geom:
     ///                         0.0000000000000000 0.0000000000000000)");
     /// ```
     fn get_exterior_ring(&self) -> GResult<ConstGeometry>;
+    fn clip_by_rect(&self, xmin: f64, ymin: f64, xmax: f64, ymax: f64) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_10_0", feature = "dox"))]
+    fn densify(&self, tolerance: f64) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn remove_repeated_points(&self, tolerance: f64) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn concave_hull(&self, ratio: f64, allow_holes: bool) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn get_extent(&self) -> GResult<Vec<f64>>;
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn transform_xy<V: FnMut(&f64, &f64) -> i32>(&self, transform: V) -> GResult<Geometry>;
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn line_substring(&self, start_fraction: f64, end_fraction: f64) -> GResult<Geometry>;
 }
 
 macro_rules! impl_geom {
@@ -1550,6 +1612,14 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         check_geos_predicate(ret_val as _, PredicateType::EqualsExact)
     }
 
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn equals_identical<G: Geom>(&self, other: &G) -> GResult<bool> {
+        let ret_val = unsafe {
+            GEOSEqualsIdentical_r(self.get_raw_context(), self.as_raw(), other.as_raw())
+        };
+        check_geos_predicate(ret_val as _, PredicateType::EqualsIdentical)
+    }
+
     fn covers<G: Geom>(&self, other: &G) -> GResult<bool> {
         let ret_val = unsafe {
             GEOSCovers_r(self.get_raw_context(), self.as_raw(), other.as_raw())
@@ -1569,6 +1639,21 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
             GEOSContains_r(self.get_raw_context(), self.as_raw(), other.as_raw())
         };
         check_geos_predicate(ret_val as _, PredicateType::Contains)
+    }
+
+    fn relate<G: Geom>(&self, other: &G) -> GResult<String> {
+        unsafe {
+            let ptr = GEOSRelate_r(self.get_raw_context(), self.as_raw(), other.as_raw());
+            managed_string(ptr, self.get_context_handle(), "GGeom::relate")
+        }
+    }
+
+    fn relate_pattern<G: Geom>(&self, other: &G, pattern: &str) -> GResult<bool> {
+        let ret_val = unsafe {
+            let pattern = CString::new(pattern).map_err(|e| Error::GenericError(format!("Conversion to CString failed: {e}")))?;
+            GEOSRelatePattern_r(self.get_raw_context(), self.as_raw(), other.as_raw(), pattern.as_ptr())
+        };
+        check_geos_predicate(ret_val as _, PredicateType::RelatePattern)
     }
 
     fn buffer(&self, width: f64, quadsegs: i32) -> GResult<Geometry> {
@@ -1628,6 +1713,14 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         }
     }
 
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn difference_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSDifferencePrec_r(self.get_raw_context(), self.as_raw(), other.as_raw(), grid_size);
+            Geometry::new_from_raw(ptr, self.clone_context(), "difference_prec")
+        }
+    }
+
     fn envelope(&self) -> GResult<Geometry> {
         unsafe {
             let ptr = GEOSEnvelope_r(self.get_raw_context(), self.as_raw());
@@ -1642,10 +1735,42 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         }
     }
 
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn sym_difference_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSSymDifferencePrec_r(self.get_raw_context(), self.as_raw(), other.as_raw(), grid_size);
+            Geometry::new_from_raw(ptr, self.clone_context(), "sym_difference_prec")
+        }
+    }
+
     fn union<G: Geom>(&self, other: &G) -> GResult<Geometry> {
         unsafe {
             let ptr = GEOSUnion_r(self.get_raw_context(), self.as_raw(), other.as_raw());
             Geometry::new_from_raw(ptr, self.clone_context(), "union")
+        }
+    }
+
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn union_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSUnionPrec_r(self.get_raw_context(), self.as_raw(), other.as_raw(), grid_size);
+            Geometry::new_from_raw(ptr, self.clone_context(), "union_prec")
+        }
+    }
+
+    #[cfg(any(feature = "v3_8_0", feature = "dox"))]
+    fn coverage_union(&self) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSCoverageUnion_r(self.get_raw_context(), self.as_raw());
+            Geometry::new_from_raw(ptr, self.clone_context(), "coverage_union")
+        }
+    }
+
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn disjoint_subset_union(&self) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSDisjointSubsetUnion_r(self.get_raw_context(), self.as_raw());
+            Geometry::new_from_raw(ptr, self.clone_context(), "disjoint_subset_union")
         }
     }
 
@@ -1660,6 +1785,14 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         unsafe {
             let ptr = GEOSUnaryUnion_r(self.get_raw_context(), self.as_raw());
             Geometry::new_from_raw(ptr, self.clone_context(), "unary_union")
+        }
+    }
+
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn unary_union_prec(&self, grid_size: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSUnaryUnionPrec_r(self.get_raw_context(), self.as_raw(), grid_size);
+            Geometry::new_from_raw(ptr, self.clone_context(), "unary_union_prec")
         }
     }
 
@@ -1690,6 +1823,14 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         }
     }
 
+    #[cfg(any(feature = "v3_9_0", feature = "dox"))]
+    fn intersection_prec<G: Geom>(&self, other: &G, grid_size: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSIntersectionPrec_r(self.get_raw_context(), self.as_raw(), other.as_raw(), grid_size);
+            Geometry::new_from_raw(ptr, self.clone_context(), "intersection_prec")
+        }
+    }
+
     fn convex_hull(&self) -> GResult<Geometry> {
         unsafe {
             let ptr = GEOSConvexHull_r(self.get_raw_context(), self.as_raw());
@@ -1706,6 +1847,12 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
 
     fn has_z(&self) -> GResult<bool> {
         let ret_val = unsafe { GEOSHasZ_r(self.get_raw_context(), self.as_raw()) };
+        check_geos_predicate(ret_val as _, PredicateType::IsSimple)
+    }
+
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn has_m(&self) -> GResult<bool> {
+        let ret_val = unsafe { GEOSHasM_r(self.get_raw_context(), self.as_raw()) };
         check_geos_predicate(ret_val as _, PredicateType::IsSimple)
     }
 
@@ -1886,6 +2033,21 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
                 Ok(z)
             } else {
                 Err(Error::GenericError("GEOSGeomGetZ_r failed".to_owned()))
+            }
+        }
+    }
+
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn get_m(&self) -> GResult<f64> {
+        if self.geometry_type() != GeometryTypes::Point {
+            return Err(Error::GenericError("Geometry must be a point".to_owned()));
+        }
+        let mut m = 0.;
+        unsafe {
+            if GEOSGeomGetM_r(self.get_raw_context(), self.as_raw(), &mut m) == 1 {
+                Ok(m)
+            } else {
+                Err(Error::GenericError("GEOSGeomGetM_r failed".to_owned()))
             }
         }
     }
@@ -2313,6 +2475,83 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
             ConstGeometry::new_from_raw(ptr, self$(.$field)?, "get_exterior_ring")
         }
     }
+
+    fn clip_by_rect(
+        &self,
+        xmin: f64,
+        ymin: f64,
+        xmax: f64,
+        ymax: f64,
+    ) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSClipByRect_r(self.get_raw_context(), self.as_raw(), xmin, ymin, xmax, ymax);
+            Geometry::new_from_raw(ptr, self.clone_context(), "clip_by_rect")
+        }
+    }
+
+    #[cfg(any(feature = "v3_10_0", feature = "dox"))]
+    fn densify(&self, tolerance: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSDensify_r(self.get_raw_context(), self.as_raw(), tolerance);
+            Geometry::new_from_raw(ptr, self.clone_context(), "densify")
+        }
+    }
+
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn remove_repeated_points(&self, tolerance: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSRemoveRepeatedPoints_r(self.get_raw_context(), self.as_raw(), tolerance);
+            Geometry::new_from_raw(ptr, self.clone_context(), "remove_repeated_points")
+        }
+    }
+
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn concave_hull(&self, ratio: f64, allow_holes: bool) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSConcaveHull_r(self.get_raw_context(), self.as_raw(), ratio, allow_holes as _);
+            Geometry::new_from_raw(ptr, self.clone_context(), "concave_hull")
+        }
+    }
+
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn get_extent(&self) -> GResult<Vec<f64>> {
+        unsafe {
+            let mut xmin: f64 = 0.;
+            let mut ymin: f64 = 0.;
+            let mut xmax: f64 = 0.;
+            let mut ymax: f64 = 0.;
+            if GEOSGeom_getExtent_r(self.get_raw_context(), self.as_raw(), &mut xmin, &mut ymin, &mut xmax, &mut ymax) == 0 {
+                Err(Error::GenericError("GEOSGeom_getExtent_r failed".to_owned()))
+            } else {
+                Ok(vec![xmin, ymin, xmax, ymax])
+            }
+        }
+    }
+
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    fn transform_xy<V: FnMut(&f64, &f64) -> i32>(
+        &self,
+        transform: V,
+    ) -> GResult<Geometry> {
+        unsafe {
+            let (closure, callback) = unpack_tranform_xy_closure(&transform);
+            let ptr = GEOSGeom_transformXY_r(
+                self.get_raw_context(),
+                self.as_raw(),
+                Some(callback),
+                closure,
+            );
+            Geometry::new_from_raw(ptr, self.clone_context(), "transform_xy")
+        }
+    }
+
+    #[cfg(any(feature = "v3_12_0", feature = "dox"))]
+    fn line_substring(&self, start_fraction: f64, end_fraction: f64) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSLineSubstring_r(self.get_raw_context(), self.as_raw(), start_fraction, end_fraction as _);
+            Geometry::new_from_raw(ptr, self.clone_context(), "line_substring")
+        }
+    }
 }
 
 impl<$($lt,)? G: Geom> PartialEq<G> for $ty_name$(<$lt>)? {
@@ -2540,6 +2779,14 @@ impl Geometry {
         unsafe {
             let ptr = GEOSLineMerge_r(self.get_raw_context(), self.as_raw());
             Geometry::new_from_raw(ptr, self.clone_context(), "line_merge")
+        }
+    }
+
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    pub fn line_merge_directed(&self) -> GResult<Geometry> {
+        unsafe {
+            let ptr = GEOSLineMergeDirected_r(self.get_raw_context(), self.as_raw());
+            Geometry::new_from_raw(ptr, self.clone_context(), "line_merge_directed")
         }
     }
 
@@ -2976,6 +3223,28 @@ impl Geometry {
             res
         }
     }
+
+    /// Creates a rectangular polygon geometry.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use geos::{Geom, Geometry};
+    ///
+    /// let geom = Geometry::create_rectangle(0., 0., 1., 1.).expect("Failed to create a rectangle");
+    ///
+    /// assert_eq!(geom.to_wkt_precision(1).unwrap(), "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))");
+    /// ```
+    #[cfg(any(feature = "v3_11_0", feature = "dox"))]
+    pub fn create_rectangle(xmin: f64, ymin: f64, xmax: f64, ymax: f64) -> GResult<Geometry> {
+        match ContextHandle::init_e(Some("Geometry::create_rectangle")) {
+            Ok(context) => unsafe {
+                let ptr = GEOSGeom_createRectangle_r(context.as_raw(), xmin, ymin, xmax, ymax);
+                Geometry::new_from_raw(ptr, Arc::new(context), "create_rectangle")
+            },
+            Err(e) => Err(e),
+        }
+    }
 }
 
 impl<'b> ConstGeometry<'b> {
@@ -3104,4 +3373,27 @@ impl<'a> ContextHandling for ConstGeometry<'a> {
     fn clone_context(&self) -> Arc<ContextHandle> {
         Arc::clone(&self.original.context)
     }
+}
+
+#[cfg(any(feature = "v3_11_0", feature = "dox"))]
+unsafe fn unpack_tranform_xy_closure<F>(
+    closure: &F,
+) -> (
+    *mut c_void,
+    extern "C" fn(*mut f64, *mut f64, *mut c_void) -> i32,
+)
+where
+    F: FnMut(&f64, &f64) -> i32,
+{
+    extern "C" fn trampoline<F>(x: *mut f64, y: *mut f64, data: *mut c_void) -> i32
+    where
+        F: FnMut(&f64, &f64) -> i32,
+    {
+        unsafe {
+            let closure: &mut F = &mut *(data as *mut F);
+            (*closure)(&mut *(x as *mut f64), &mut *(y as *mut f64))
+        }
+    }
+
+    (closure as *const F as *mut c_void, trampoline::<F>)
 }

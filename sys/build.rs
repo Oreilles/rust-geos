@@ -179,6 +179,14 @@ fn main() {
         binding_version = Version::new(3, 11, 0);
     }
 
+    if cfg!(feature = "v3_12_0") {
+        binding_version = Version::new(3, 12, 0);
+    }
+
+    if cfg!(feature = "v3_13_0") {
+        binding_version = Version::new(3, 13, 0);
+    }
+
     if version < binding_version {
         panic!("You requested a version of GEOS ({}.{}) that is greater than your installed GEOS version ({}.{}.{})", binding_version.major, binding_version.minor, version.major, version.minor, version.patch);
     }
