@@ -17,7 +17,7 @@ use std::sync::Arc;
 /// let point_geom = Geometry::new_from_wkt("POINT (2.5 2.5)").expect("Invalid geometry");
 /// let mut writer = GeoJSONWriter::new().expect("Failed to create GeoJSONWriter");
 ///
-/// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type": "Point", "coordinates": [2.5, 2.5]}");
+/// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type":"Point","coordinates":[2.5, 2.5]}"#);
 /// ```
 pub struct GeoJSONWriter {
     ptr: PtrWrap<*mut GEOSGeoJSONWriter>,
@@ -35,7 +35,7 @@ impl GeoJSONWriter {
     /// let point_geom = Geometry::new_from_wkt("POINT (2.5 2.5)").expect("Invalid geometry");
     /// let mut writer = GeoJSONWriter::new().expect("Failed to create GeoJSONWriter");
     ///
-    /// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type": "Point", "coordinates": [2.5, 2.5]}");
+    /// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type":"Point","coordinates":[2.5, 2.5]}"#);
     /// ```
     pub fn new() -> GResult<GeoJSONWriter> {
         match ContextHandle::init_e(Some("GeoJSONWriter::new")) {
@@ -55,7 +55,7 @@ impl GeoJSONWriter {
     /// let mut writer = GeoJSONWriter::new_with_context(point_geom.clone_context())
     ///                            .expect("Failed to create GeoJSONWriter");
     ///
-    /// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type": "Point", "coordinates": [2.5, 2.5]}");
+    /// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type":"Point","coordinates":[2.5, 2.5]}");
     /// ```
     pub fn new_with_context(context: Arc<ContextHandle>) -> GResult<GeoJSONWriter> {
         unsafe {
@@ -85,7 +85,7 @@ impl GeoJSONWriter {
         })
     }
 
-    /// Writes out the given `geometry` as WKT format.
+    /// Writes out the given `geometry` as GeoJSON format.
     ///
     /// # Example
     ///
@@ -95,7 +95,7 @@ impl GeoJSONWriter {
     /// let point_geom = Geometry::new_from_wkt("POINT (2.5 2.5)").expect("Invalid geometry");
     /// let mut writer = GeoJSONWriter::new().expect("Failed to create GeoJSONWriter");
     ///
-    /// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type": "Point", "coordinates": [2.5, 2.5]}");
+    /// assert_eq!(writer.write(&point_geom).unwrap(), r#"{"type":"Point","coordinates":[2.5, 2.5]}");
     /// ```
     pub fn write<G: Geom>(&mut self, geometry: &G, indent: i32) -> GResult<String> {
         unsafe {
@@ -122,7 +122,7 @@ impl ContextInteractions for GeoJSONWriter {
     /// use geos::{ContextInteractions, ContextHandle, GeoJSONWriter};
     ///
     /// let context_handle = ContextHandle::init().expect("invalid init");
-    /// let mut writer = GeoJSONWriter::new().expect("failed to create WKT writer");
+    /// let mut writer = GeoJSONWriter::new().expect("failed to create GeoJSON writer");
     /// context_handle.set_notice_message_handler(Some(Box::new(|s| println!("new message: {}", s))));
     /// writer.set_context_handle(context_handle);
     /// ```
@@ -135,7 +135,7 @@ impl ContextInteractions for GeoJSONWriter {
     /// ```
     /// use geos::{ContextInteractions, GeoJSONWriter};
     ///
-    /// let mut writer = GeoJSONWriter::new().expect("failed to create WKT writer");
+    /// let mut writer = GeoJSONWriter::new().expect("failed to create GeoJSON writer");
     /// let context = writer.get_context_handle();
     /// context.set_notice_message_handler(Some(Box::new(|s| println!("new message: {}", s))));
     /// ```

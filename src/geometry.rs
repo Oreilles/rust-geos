@@ -2434,6 +2434,33 @@ impl Geometry {
         }
     }
 
+    /// Creates a `Geometry` from the GeoJSON format.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use geos::Geometry;
+    ///
+    /// let point_geom = Geometry::new_from_geojson(r#"{"type": "Point", "coordinates": [2.5, 2.5]}"#).expect("Invalid geometry");
+    /// ```
+    pub fn new_from_geojson(wkt: &str) -> GResult<Geometry> {
+        match ContextHandle::init_e(Some("Geometry::new_from_geojson")) {
+            Ok(context_handle) => match CString::new(wkt) {
+                Ok(c_str) => unsafe {
+                    let reader = GEOSGeoJSONReader_create_r(context_handle.as_raw());
+                    let ptr = GEOSGeoJSONReader_readGeometry_r(context_handle.as_raw(), reader, c_str.as_ptr());
+                    GEOSGeoJSONReader_destroy_r(context_handle.as_raw(), reader);
+                    Geometry::new_from_raw(ptr, Arc::new(context_handle), "new_from_geojson")
+                },
+                Err(e) => Err(Error::GenericError(format!(
+                    "Conversion to CString failed: {e}",
+                ))),
+            },
+            Err(e) => Err(e),
+        }
+    }
+
+
     /// Creates an areal geometry formed by the constituent linework of given geometry.
     ///
     /// You can find new illustrations on [postgis](https://postgis.net/docs/ST_BuildArea.html)
