@@ -1048,7 +1048,7 @@ pub trait Geom:
     ///
     /// assert_eq!(geom.get_num_dimensions(), Ok(2));
     /// ```
-    fn get_num_dimensions(&self) -> GResult<usize>;
+    fn get_num_dimensions(&self) -> GResult<i32>;
     /// Return in which coordinate dimension the geometry is.
     ///
     /// # Example
@@ -1956,14 +1956,10 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
         }
     }
 
-    fn get_num_dimensions(&self) -> GResult<usize> {
+    fn get_num_dimensions(&self) -> GResult<i32> {
         unsafe {
             let ret = GEOSGeom_getDimensions_r(self.get_raw_context(), self.as_raw());
-            if ret == -1 {
-                Err(Error::GenericError("GEOSGeom_getDimensions_r failed".to_owned()))
-            } else {
-                Ok(ret as _)
-            }
+            Ok(ret as _)
         }
     }
 
