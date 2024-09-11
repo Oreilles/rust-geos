@@ -996,7 +996,7 @@ pub trait Geom:
     fn get_m(&self) -> GResult<f64>;
     /// Returns the nth point of the given geometry.
     ///
-    /// The given `Geometry` must be a `LineString`, `LinearRing` or `CircularString`, otherwise it'll fail.
+    /// The given `Geometry` must be a `LineString` or `LinearRing`, otherwise it'll fail.
     ///
     /// # Example
     ///
@@ -1012,7 +1012,7 @@ pub trait Geom:
     fn get_point_n(&self, n: usize) -> GResult<Geometry>;
     /// Returns the start point of `self`.
     ///
-    /// The given `Geometry` must be a `LineString`, `LinearRing` or `CircularString`, otherwise it'll fail.
+    /// The given `Geometry` must be a `LineString` or `LinearRing`, otherwise it'll fail.
     ///
     /// # Example
     ///
@@ -1028,7 +1028,7 @@ pub trait Geom:
     fn get_start_point(&self) -> GResult<Geometry>;
     /// Returns the end point of `self`.
     ///
-    /// The given `Geometry` must be a `LineString`, `LinearRing` or `CircularString`, otherwise it'll fail.
+    /// The given `Geometry` must be a `LineString` or `LinearRing`, otherwise it'll fail.
     ///
     /// # Example
     ///
@@ -1044,7 +1044,7 @@ pub trait Geom:
     fn get_end_point(&self) -> GResult<Geometry>;
     /// Returns the number of points of `self`.
     ///
-    /// The given `Geometry` must be a `LineString`, `LinearRing` or `CircularString`, otherwise it'll fail.
+    /// The given `Geometry` must be a `LineString` or `LinearRing`, otherwise it'll fail.
     ///
     /// # Example
     ///
@@ -2052,8 +2052,8 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_point_n(&self, n: usize) -> GResult<Geometry> {
-        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing | GeometryTypes::CircularString) {
-            return Err(Error::GenericError("Geometry must be a LineString, LinearRing or CircularString".to_owned()));
+        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing) {
+            return Err(Error::GenericError("Geometry must be a LineString or LinearRing".to_owned()));
         }
         unsafe {
             let ptr = GEOSGeomGetPointN_r(self.get_raw_context(), self.as_raw(), n as _);
@@ -2062,8 +2062,8 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_start_point(&self) -> GResult<Geometry> {
-        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing | GeometryTypes::CircularString) {
-            return Err(Error::GenericError("Geometry must be a LineString, LinearRing or CircularString".to_owned()));
+        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing) {
+            return Err(Error::GenericError("Geometry must be a LineString or LinearRing".to_owned()));
         }
         unsafe {
             let ptr = GEOSGeomGetStartPoint_r(self.get_raw_context(), self.as_raw());
@@ -2072,8 +2072,8 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_end_point(&self) -> GResult<Geometry> {
-        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing | GeometryTypes::CircularString) {
-            return Err(Error::GenericError("Geometry must be a LineString, LinearRing or CircularString".to_owned()));
+        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing) {
+            return Err(Error::GenericError("Geometry must be a LineString or LinearRing".to_owned()));
         }
         unsafe {
             let ptr = GEOSGeomGetEndPoint_r(self.get_raw_context(), self.as_raw());
@@ -2082,8 +2082,8 @@ impl$(<$lt>)? Geom for $ty_name$(<$lt>)? {
     }
 
     fn get_num_points(&self) -> GResult<usize> {
-        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing | GeometryTypes::CircularString) {
-            return Err(Error::GenericError("Geometry must be a LineString, LinearRing or CircularString".to_owned()));
+        if !matches!(self.geometry_type(), GeometryTypes::LineString | GeometryTypes::LinearRing) {
+            return Err(Error::GenericError("Geometry must be a LineString or LinearRing".to_owned()));
         }
         unsafe {
             let ret = GEOSGeomGetNumPoints_r(self.get_raw_context(), self.as_raw());
