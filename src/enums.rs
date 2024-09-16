@@ -71,6 +71,7 @@ impl Into<c_int> for Dimensions {
 pub enum OutputDimension {
     TwoD,
     ThreeD,
+    FourD,
 }
 
 impl TryFrom<c_int> for OutputDimension {
@@ -80,7 +81,8 @@ impl TryFrom<c_int> for OutputDimension {
         match dimensions {
             2 => Ok(OutputDimension::TwoD),
             3 => Ok(OutputDimension::ThreeD),
-            _ => Err("dimension must be 2 or 3"),
+            4 => Ok(OutputDimension::FourD),
+            _ => Err("dimension must be 2, 3 or 4"),
         }
     }
 }
@@ -91,6 +93,7 @@ impl Into<c_int> for OutputDimension {
         match self {
             OutputDimension::TwoD => 2,
             OutputDimension::ThreeD => 3,
+            OutputDimension::FourD => 4,
         }
     }
 }
